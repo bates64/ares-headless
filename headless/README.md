@@ -12,7 +12,7 @@ In the repo root, run
 nix build
 ```
 
-which will produce `result/lib/ares.a`.
+which will produce `result/ares.a`.
 
 # Changes
 
