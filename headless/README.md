@@ -1,8 +1,8 @@
-# ares-headless
+# libares
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](../LICENSE)
 
-This is a fork of [ares](https://github.com/ares-emulator/ares) that produces an LLVM archive file for use within other projects.
+This is a fork of [ares](https://github.com/ares-emulator/ares) that produces a static library.
 
 # Build
 
@@ -12,7 +12,7 @@ In the repo root, run
 nix build
 ```
 
-which will produce `result/ares.a`.
+which will produce `result/lib/libares.a`.
 
 # Changes
 

@@ -4,6 +4,7 @@
   pkg-config,
   which,
   wrapGAppsHook,
+  cpio,
   alsa-lib,
   SDL2,
   libao,
@@ -22,7 +23,7 @@
 # TODO(macOS): test, and remove everything related to Cocoa
 
 stdenv.mkDerivation {
-  name = "ares-headless";
+  name = "libares";
 
   src = self;
 
@@ -30,6 +31,7 @@ stdenv.mkDerivation {
     pkg-config
     which
     wrapGAppsHook
+    cpio
   ] ++ lib.optionals stdenv.isDarwin [ libicns ];
 
   buildInputs =
@@ -68,8 +70,16 @@ stdenv.mkDerivation {
     ];
   
   installPhase = ''
-    mkdir -p $out
-    cp headless/out/ares.a $out/ares.a
+    mkdir -p $out/lib
+    cp headless/out/ares.a $out/lib/libares.a
+
+    mkdir -p $out/include
+    cd ares
+    find . -name '*.hpp' -type f | cpio -pdm $out/include
+    cd ..
+    find mia -name '*.hpp' -type f | cpio -pdm $out/include
+    find nall -name '*.hpp' -type f | cpio -pdm $out/include
+    find libco -name '*.hpp' -type f | cpio -pdm $out/include
   '';
 
   env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.isDarwin "-mmacosx-version-min=10.14";

@@ -5,11 +5,11 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in {
         packages = rec {
-          ares-headless = pkgs.callPackage ./package.nix {
+          libares = pkgs.callPackage ./package.nix {
             inherit self;
             stdenv = pkgs.clangStdenv;
           };
-          default = ares-headless;
+          default = libares;
         };
       }
     );
