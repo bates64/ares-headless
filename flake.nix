@@ -1,18 +1,16 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
-  outputs =
-    { nixpkgs, self }:
-    {
-      packages.x86_64-linux =
-        let
-          pkgs = nixpkgs.legacyPackages.x86_64-linux;
-        in
-        {
-          ares = pkgs.callPackage ./package.nix {
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in {
+        packages = rec {
+          ares-headless = pkgs.callPackage ./package.nix {
             inherit self;
             stdenv = pkgs.clangStdenv;
           };
-          default = self.packages.x86_64-linux.ares;
+          default = ares-headless;
         };
-    };
+      }
+    );
 }
