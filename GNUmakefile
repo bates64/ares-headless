@@ -1,6 +1,6 @@
-targets = all clean install uninstall verbose
+targets = all clean verbose
 
 $(targets):
-	@$(MAKE) -C desktop-ui $@
+	@$(MAKE) -C headless $@
 
 .PHONY: $(targets)

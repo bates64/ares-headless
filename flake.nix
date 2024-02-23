@@ -8,7 +8,10 @@
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
         in
         {
-          ares = pkgs.callPackage ./package.nix { inherit self; };
+          ares = pkgs.callPackage ./package.nix {
+            inherit self;
+            stdenv = pkgs.clangStdenv;
+          };
           default = self.packages.x86_64-linux.ares;
         };
     };

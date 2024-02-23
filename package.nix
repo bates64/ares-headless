@@ -8,8 +8,6 @@
   SDL2,
   libao,
   libicns,
-  gtk3,
-  gtksourceview3,
   libGL,
   libGLU,
   libX11,
@@ -21,9 +19,10 @@
   self,
 }:
 
+# TODO(macOS): test, and remove everything related to Cocoa
+
 stdenv.mkDerivation {
-  pname = "ares";
-  version = "135";
+  name = "ares-headless";
 
   src = self;
 
@@ -40,8 +39,6 @@ stdenv.mkDerivation {
     ]
     ++ lib.optionals stdenv.isLinux [
       alsa-lib
-      gtk3
-      gtksourceview3
       libGL
       libGLU
       libX11
@@ -69,16 +66,17 @@ stdenv.mkDerivation {
       "openmp=true"
       "prefix=$(out)"
     ];
+  
+  installPhase = ''
+    mkdir -p $out
+    cp headless/out/ares.a $out/ares.a
+  '';
 
   env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.isDarwin "-mmacosx-version-min=10.14";
   meta = {
     homepage = "https://ares-emu.net";
     description = "Open-source multi-system emulator with a focus on accuracy and preservation";
     license = lib.licenses.isc;
-    maintainers = with lib.maintainers; [
-      Madouura
-      AndersonTorres
-    ];
     platforms = lib.platforms.unix;
     broken = stdenv.isDarwin;
   };
