@@ -20,10 +20,12 @@
   self,
 }:
 
-# TODO(macOS): test, and remove everything related to Cocoa
+# TODO: this package was derived from nixpkgs, so there might be some inputs/code that isn't needed
 
-stdenv.mkDerivation {
-  name = "libares";
+let
+  extension = if stdenv.isDarwin then "dylib" else "so";
+in stdenv.mkDerivation {
+  name = "ares_libretro";
 
   src = self;
 
@@ -50,18 +52,14 @@ stdenv.mkDerivation {
       udev
     ]
     ++ lib.optionals stdenv.isDarwin [
-      darwin.apple_sdk_11_0.frameworks.Cocoa
-      darwin.apple_sdk_11_0.frameworks.OpenAL
+      darwin.moltenvk
     ];
 
   enableParallelBuilding = true;
 
   makeFlags =
-    lib.optionals stdenv.isLinux [ "hiro=gtk3" ]
-    ++ lib.optionals stdenv.isDarwin [
-      "hiro=cocoa"
+    lib.optionals stdenv.isDarwin [
       "lto=false"
-      "vulkan=false"
     ]
     ++ [
       "local=false"
@@ -71,23 +69,18 @@ stdenv.mkDerivation {
   
   installPhase = ''
     mkdir -p $out/lib
-    cp headless/out/ares.a $out/lib/libares.a
-
-    mkdir -p $out/include
-    cd ares
-    find . -name '*.hpp' -type f | cpio -pdm $out/include
-    cd ..
-    find mia -name '*.hpp' -type f | cpio -pdm $out/include
-    find nall -name '*.hpp' -type f | cpio -pdm $out/include
-    find libco -name '*.hpp' -type f | cpio -pdm $out/include
+    cp libretro/out/ares_libretro.${extension} $out/lib/ares_libretro.${extension}
   '';
 
   env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.isDarwin "-mmacosx-version-min=10.14";
+
+  # Darwin dylibs
+  env.SDL2_DYLIB = lib.optionalString stdenv.isDarwin "${SDL2}/lib/libSDL2.dylib";
+  env.MOLTENVK_DYLIB = lib.optionals stdenv.isDarwin "${darwin.moltenvk}/lib/libMoltenVK.dylib";
+
   meta = {
     homepage = "https://ares-emu.net";
-    description = "Open-source multi-system emulator with a focus on accuracy and preservation";
+    description = "Port of ares to libretro";
     license = lib.licenses.isc;
-    platforms = lib.platforms.unix;
-    broken = stdenv.isDarwin;
   };
 }

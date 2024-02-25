@@ -1,4 +1,4 @@
-name := ares
+name := ares_libretro
 build := optimized
 threaded := true
 openmp := false
@@ -6,6 +6,7 @@ vulkan := true
 sdl2 := true
 local := true
 lto := false
+static_linking := false
 flags += -I. -I.. -I../ares -I../thirdparty -DMIA_LIBRARY
 
 nall.path := ../nall
@@ -59,51 +60,76 @@ mia.objects := $(mia.objects:%=$(object.path)/%.o)
 $(object.path)/mia.o: $(mia.path)/mia.cpp
 $(object.path)/mia-resource.o: $(mia.path)/resource/resource.cpp
 
-all.objects :=            $(libco.objects) $(sljit.objects) $(libchdr.objects) $(tzxfile.objects) $(ymfm.objects) $(nall.objects) $(ares.objects) $(mia.objects)
+libretro.path := ../libretro
+
+libretro.objects := libretro
+libretro.objects := $(libretro.objects:%=$(object.path)/%.o)
+
+$(object.path)/libretro.o: $(libretro.path)/libretro.cpp
+
+all.objects :=            $(libco.objects) $(sljit.objects) $(libchdr.objects) $(tzxfile.objects) $(ymfm.objects) $(nall.objects) $(ares.objects) $(mia.objects) $(libretro.objects)
 all.options := $(options) $(libco.options) $(sljit.options) $(libchdr.options) $(tzxfile.options) $(ymfm.options) $(nall.options) $(ares.options) $(mia.options)
 
 $(all.objects): | $(object.path)
 
-ar := ar rc
-extension := .a
+ifeq ($(static_linking),true)
+  extension := .a
+else
+  flags += -fPIC
+
+  # TODO: do macos and windows want the linker script too?
+  # TODO: test unix and windows
+
+  ifeq ($(platform),unix)
+    extension := .so
+    shared := -shared -Wl,--version-script=link.T -Wl,--no-undefined
+  else ifeq ($(platform),macos)
+    extension := .dylib
+    shared := -dynamiclib
+  else ifeq ($(platform),windows)
+    extension := .dll
+    shared := -static-libgcc -static-libstdc++ -s -Wl,--version-script=link.T -Wl,--no-undefined
+  endif
+endif
 
 all: $(all.objects) | $(output.path)
 	$(info Linking $(output.path)/$(name)$(extension) ...)
 	$(call lib_out,$(output.path)/$(name)$(extension))
-	+@$(ar) $(output.path)/$(name)$(extension) $(all.objects)
+ifeq ($(static_linking),true)
+	@ar rcs $(output.path)/$(name)$(extension) $(all.objects)
+else
+	@$(compiler) $(shared) -o $(output.path)/$(name)$(extension) $(all.objects)
+endif
 	$(call copy,../LICENSE,$(output.path)/LICENSE.txt)
-ifeq ($(platform),macos)
-# Apply workaround for buggy linker in Xcode < 11.4.1
-	@$(compiler) -o $(output.path)/macos-fix-jit macos-fix-jit.cpp
-	$(output.path)/macos-fix-jit $(output.path)/$(name)
-	rm -f $(output.path)/macos-fix-jit
-	rm -rf $(output.path)/$(name).app
-	install_name_tool -add_rpath @executable_path/../Frameworks $(output.path)/$(name)
-	mkdir -p $(output.path)/$(name).app/Contents/MacOS/
-	mkdir -p $(output.path)/$(name).app/Contents/Resources/
-	mkdir -p $(output.path)/$(name).app/Contents/Frameworks/
-ifneq ($(ares.dylibs),)
-	cp $(ares.dylibs) $(output.path)/$(name).app/Contents/Frameworks/
-endif
-	mv $(output.path)/$(name) $(output.path)/$(name).app/Contents/MacOS/$(name)
-	cp resource/$(name).plist $(output.path)/$(name).app/Contents/Info.plist
-	cp -R $(ares.path)/Shaders $(output.path)/$(name).app/Contents/Resources/
-	cp -R $(mia.path)/Database $(output.path)/$(name).app/Contents/Resources/	
-	sips -s format icns resource/$(name).png --out $(output.path)/$(name).app/Contents/Resources/$(name).icns
-	codesign --force --deep --options runtime --entitlements resource/$(name).selfsigned.entitlements --sign - $(output.path)/$(name).app
-else ifeq ($(platform),windows)
-	$(call mkdir,$(output.path)/Shaders/)
-	$(call mkdir,$(output.path)/Database/)
-	$(call rcopy,$(ares.path)/Shaders/*,$(output.path)/Shaders/)
-	$(call rcopy,$(mia.path)/Database/*,$(output.path)/Database/)
-endif
+# ifeq ($(platform),macos)
+# # Apply workaround for buggy linker in Xcode < 11.4.1
+# 	@$(compiler) -o $(output.path)/macos-fix-jit macos-fix-jit.cpp
+# 	$(output.path)/macos-fix-jit $(output.path)/$(name)
+# 	rm -f $(output.path)/macos-fix-jit
+# 	rm -rf $(output.path)/$(name).app
+# 	install_name_tool -add_rpath @executable_path/../Frameworks $(output.path)/$(name)
+# 	mkdir -p $(output.path)/$(name).app/Contents/MacOS/
+# 	mkdir -p $(output.path)/$(name).app/Contents/Resources/
+# 	mkdir -p $(output.path)/$(name).app/Contents/Frameworks/
+# ifneq ($(ares.dylibs),)
+# 	cp $(ares.dylibs) $(output.path)/$(name).app/Contents/Frameworks/
+# endif
+# 	mv $(output.path)/$(name) $(output.path)/$(name).app/Contents/MacOS/$(name)
+# 	cp resource/$(name).plist $(output.path)/$(name).app/Contents/Info.plist
+# 	cp -R $(ares.path)/Shaders $(output.path)/$(name).app/Contents/Resources/
+# 	cp -R $(mia.path)/Database $(output.path)/$(name).app/Contents/Resources/	
+# 	sips -s format icns resource/$(name).png --out $(output.path)/$(name).app/Contents/Resources/$(name).icns
+# 	codesign --force --deep --options runtime --entitlements resource/$(name).selfsigned.entitlements --sign - $(output.path)/$(name).app
+# else ifeq ($(platform),windows)
+# 	$(call mkdir,$(output.path)/Shaders/)
+# 	$(call mkdir,$(output.path)/Database/)
+# 	$(call rcopy,$(ares.path)/Shaders/*,$(output.path)/Shaders/)
+# 	$(call rcopy,$(mia.path)/Database/*,$(output.path)/Database/)
+# endif
 
 verbose: nall.verbose ruby.verbose hiro.verbose all;
 
 clean:
-ifeq ($(platform),macos)
-	rm -rf $(output.path)/$(name).app
-endif
 	$(call rdelete,$(object.path))
 	$(call rdelete,$(output.path))
 

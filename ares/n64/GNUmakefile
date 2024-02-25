@@ -43,12 +43,16 @@ ifeq ($(vulkan),true)
     $(error Compiling Ares N64 Vulkan backend requires GNU Make 3.82 or later)
   endif
   ifeq ($(platform),macos)
-    molten = $(ares.path)/../thirdparty/MoltenVK/libMoltenVK.dylib
-    ifeq ($(wildcard $(molten)),)  
-      molten = $(shell brew --prefix molten-vk)/lib/libMoltenVK.dylib
-      ifeq ($(wildcard $(molten)),)
-        $(error Compiling Ares N64 Vulkan backend requires MoltenVK. Install it via Homebrew, compile it using thirdparty/MoltenVK/build-moltenvk.sh, or disable with vulkan=false")
+    ifeq ($(MOLTENVK_DYLIB),)
+      molten = $(ares.path)/../thirdparty/MoltenVK/libMoltenVK.dylib
+      ifeq ($(wildcard $(molten)),)  
+        molten = $(shell brew --prefix molten-vk)/lib/libMoltenVK.dylib
       endif
+    else
+      molten = $(MOLTENVK_DYLIB)
+    endif
+    ifeq ($(wildcard $(molten)),)
+      $(error Compiling Ares N64 Vulkan backend requires MoltenVK. Install it via Homebrew, compile it using thirdparty/MoltenVK/build-moltenvk.sh, provide its path via MOLTENVK_DYLIB, or disable with vulkan=false")
     endif
     ares.dylibs += $(molten)
   endif

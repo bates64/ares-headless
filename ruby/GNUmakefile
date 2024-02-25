@@ -21,11 +21,15 @@ ifeq ($(ruby),)
     ruby += audio.openal
     ruby += input.quartz #input.carbon
     ifeq ($(sdl2),true)
-      macsdl = ../thirdparty/SDL/libSDL2-2.0.0.dylib
-      ares.dylibs += $(macsdl)
-      ifeq ($(wildcard $(macsdl)),)
-        $(error Tried to compile ruby for macOS with SDL2 linked, but no SDL2 library was found. Compile it with thirdparty/SDL/build-sdl.sh, or disable SDL by compiling ares with sdl2=false)
+      ifeq ($(SDL2_DYLIB),)
+        macsdl = ../thirdparty/SDL/libSDL2-2.0.0.dylib
+      else
+        macsdl = $(SDL2_DYLIB)
       endif
+      ifeq ($(wildcard $(macsdl)),)
+        $(error Tried to compile ruby for macOS with SDL2 linked, but no SDL2 library was found. Compile it with thirdparty/SDL/build-sdl.sh, provide its path via MOLTENVK_DYLIB, or disable SDL by compiling ares with sdl2=false)
+      endif
+      ares.dylibs += $(macsdl)
       ruby += input.sdl
     endif
   else ifeq ($(platform),linux)
